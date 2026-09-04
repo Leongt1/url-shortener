@@ -47,6 +47,10 @@ func (s *Service) Resolve(ctx context.Context, code string) (string, error) {
 	return s.repo.GetUrl(ctx, code)
 }
 
+func (s *Service) RecordClick(ctx context.Context, code string) error {
+	return s.repo.PushClick(ctx, code)
+}
+
 // picks 6 random characters from 62 characters
 func generateRandomStr() (string, error) {
 	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"

@@ -53,5 +53,10 @@ func (h *Handler) Redirect(c *gin.Context) {
 		return
 	}
 
+	if err := h.svc.RecordClick(c.Request.Context(), code); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.Redirect(http.StatusFound, longUrl)
 }

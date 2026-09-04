@@ -59,3 +59,31 @@ func (r *Repository) GetUrl(ctx context.Context, code string) (string, error) {
 
 	return url, nil
 }
+
+func (r *Repository) PushClick(ctx context.Context, code string) error {
+	if err := r.client.LPush(ctx, "clicks", code).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repository) PopClick(ctx context.Context, timeout time.Duration) (string, error) {
+	result, err := r.client.BRPop(ctx, timeout, "clicks").Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return "", ErrNotFound
+		}
+		return "", err
+	}
+
+	return result[1], nil
+}
+
+func (r *Repository) IncrClickCount(ctx context.Context, code string) error {
+	if err := r.client.Incr(ctx, "count:"+code).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}

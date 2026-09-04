@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/Leongt1/url-shortener/internal/repository"
 	"github.com/Leongt1/url-shortener/internal/routes"
 	"github.com/Leongt1/url-shortener/internal/service"
+	"github.com/Leongt1/url-shortener/internal/worker"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,7 +24,7 @@ func main() {
 		})
 	})
 
-	repo, err := repository.NewRepository("")
+	repo, err := repository.NewRepository(":6379")
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -32,8 +34,12 @@ func main() {
 
 	routes.Register(r, h)
 
+	// starting worker
+	w := worker.NewWorker(repo)
+	go w.Run(context.Background())
+
+	fmt.Println("Server is running in port :8080")
 	if err := r.Run(":8080"); err != nil {
 		logger.Fatal("Server failed: ", err)
 	}
-	fmt.Println("Server is running in port :8080")
 }
