@@ -68,16 +68,16 @@ func (r *Repository) PushClick(ctx context.Context, code string) error {
 	return nil
 }
 
-func (r *Repository) PopClick(ctx context.Context, timeout time.Duration) (string, error) {
+func (r *Repository) PopClick(ctx context.Context, timeout time.Duration) (string, bool, error) {
 	result, err := r.client.BRPop(ctx, timeout, "clicks").Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return "", ErrNotFound
+			return "", false, nil
 		}
-		return "", err
+		return "", false, err
 	}
 
-	return result[1], nil
+	return result[1], true, nil
 }
 
 func (r *Repository) IncrClickCount(ctx context.Context, code string) error {

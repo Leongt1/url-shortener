@@ -19,7 +19,7 @@ func NewService(repo *repository.Repository) *Service {
 	}
 }
 
-// shortens the given url into a Base62 shortened url
+// shortens the given url into a random string shortened url
 func (s *Service) Shorten(ctx context.Context, url string) (string, error) {
 	retryCount := 5
 
