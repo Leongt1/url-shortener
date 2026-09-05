@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s        # default: how often to scrape every target
+
+scrape_configs:               # a LIST of scrape jobs
+  - job_name: "url-shortener" # a label attached to every metric from this job
+    static_configs:
+      - targets: ["app:8080"] # list of host:port to scrape

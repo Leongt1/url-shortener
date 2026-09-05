@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Leongt1/url-shortener/internal/metrics"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -40,7 +41,13 @@ func (r *Repository) Ping(ctx context.Context) error {
 }
 
 func (r *Repository) SetUrl(ctx context.Context, code string, value string, expiration time.Duration) (bool, error) {
+	now := time.Now()
+
 	ok, err := r.client.SetNX(ctx, "url:"+code, value, expiration).Result()
+
+	elapsedSeconds := time.Since(now).Seconds()
+	metrics.RedisDuration.WithLabelValues("set").Observe(elapsedSeconds)
+
 	if err != nil {
 		return false, fmt.Errorf("error setting url: %w", err)
 	}
@@ -49,11 +56,17 @@ func (r *Repository) SetUrl(ctx context.Context, code string, value string, expi
 }
 
 func (r *Repository) GetUrl(ctx context.Context, code string) (string, error) {
+	now := time.Now()
+
 	url, err := r.client.Get(ctx, "url:"+code).Result()
+	if errors.Is(err, redis.Nil) {
+		return "", ErrNotFound
+	}
+
+	elapsedSeconds := time.Since(now).Seconds()
+	metrics.RedisDuration.WithLabelValues("get").Observe(elapsedSeconds)
+
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return "", ErrNotFound
-		}
 		return "", err
 	}
 
@@ -61,19 +74,30 @@ func (r *Repository) GetUrl(ctx context.Context, code string) (string, error) {
 }
 
 func (r *Repository) PushClick(ctx context.Context, code string) error {
+	now := time.Now()
+
 	if err := r.client.LPush(ctx, "clicks", code).Err(); err != nil {
 		return err
 	}
+
+	elapsedSeconds := time.Since(now).Seconds()
+	metrics.RedisDuration.WithLabelValues("lpush").Observe(elapsedSeconds)
 
 	return nil
 }
 
 func (r *Repository) PopClick(ctx context.Context, timeout time.Duration) (string, bool, error) {
+	now := time.Now()
+
 	result, err := r.client.BRPop(ctx, timeout, "clicks").Result()
+	if errors.Is(err, redis.Nil) {
+		return "", false, nil
+	}
+
+	elapsedSeconds := time.Since(now).Seconds()
+	metrics.RedisDuration.WithLabelValues("brpop").Observe(elapsedSeconds)
+
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return "", false, nil
-		}
 		return "", false, err
 	}
 
@@ -86,4 +110,13 @@ func (r *Repository) IncrClickCount(ctx context.Context, code string) error {
 	}
 
 	return nil
+}
+
+func (r *Repository) QueueDepth(ctx context.Context) (int64, error) {
+	queueLen, err := r.client.LLen(ctx, "clicks").Result()
+	if err != nil {
+		return 0, err
+	}
+
+	return queueLen, nil
 }

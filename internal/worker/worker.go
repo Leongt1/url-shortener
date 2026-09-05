@@ -39,7 +39,12 @@ func (w *Worker) Run(ctx context.Context) {
 			continue
 		}
 
-		if err := w.repo.IncrClickCount(context.Background(), code); err != nil {
+		incrCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+
+		err = w.repo.IncrClickCount(incrCtx, code)
+		cancel()
+
+		if err != nil {
 			log.Println(err.Error())
 			continue
 		}

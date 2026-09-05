@@ -2,8 +2,10 @@ package handler
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
+	"github.com/Leongt1/url-shortener/internal/metrics"
 	"github.com/Leongt1/url-shortener/internal/models"
 	"github.com/Leongt1/url-shortener/internal/repository"
 	"github.com/Leongt1/url-shortener/internal/service"
@@ -34,6 +36,8 @@ func (h *Handler) Shorten(c *gin.Context) {
 		return
 	}
 
+	metrics.ShortensTotal.Inc()
+
 	c.JSON(http.StatusCreated, gin.H{
 		"code":      shortenedStr,
 		"short_url": "http://localhost:8080/" + shortenedStr,
@@ -54,8 +58,10 @@ func (h *Handler) Redirect(c *gin.Context) {
 	}
 
 	if err := h.svc.RecordClick(c.Request.Context(), code); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("failed to record click: %v", err)
 	}
+
+	metrics.RedirectsTotal.Inc()
 
 	c.Redirect(http.StatusFound, longUrl)
 }
